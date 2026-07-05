@@ -1,66 +1,58 @@
 import { useEffect, useRef, useState } from 'react'
-import { getWeather } from '../api/client.js'
-
-// Pulls a city name out of messages like "weather in Mumbai" or
-// "what is the weather of Delhi?". Falls back to null if not found.
-function extractCity(message) {
-  const match = message.match(/weather\s+(?:in|of|at|for)\s+([a-zA-Z\s]+)/i)
-  if (match) return match[1].trim().replace(/[?.!]+$/, '')
-  return null
-}
+import { Link, Navigate, useParams } from 'react-router-dom'
+import { sendChatMessage } from '../api/client.js'
+import { getPersonaById } from '../personas.js'
 
 function Chat() {
-  const [messages, setMessages] = useState([
-    {
-      role: 'bot',
-      text: 'Hey! I am ChaiCode weather bot ☕. Ask me something like "What is the weather in Mumbai?"',
-    },
-  ])
+  const { personaId } = useParams()
+  const persona = getPersonaById(personaId)
+
+  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
 
+  // Reset the conversation when switching personas
+  useEffect(() => {
+    if (persona) {
+      setMessages([{ role: 'assistant', content: persona.greeting, videos: [] }])
+    }
+  }, [personaId])
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  if (!persona) {
+    return <Navigate to="/" replace />
+  }
 
   async function handleSend(e) {
     e.preventDefault()
     const text = input.trim()
     if (!text || loading) return
 
-    setMessages((prev) => [...prev, { role: 'user', text }])
+    const nextMessages = [...messages, { role: 'user', content: text }]
+    setMessages(nextMessages)
     setInput('')
     setLoading(true)
 
     try {
-      const city = extractCity(text)
+      // Send only role/content — the backend doesn't need the videos field
+      const history = nextMessages.map(({ role, content }) => ({ role, content }))
+      const data = await sendChatMessage(persona.id, history)
 
-      if (!city) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'bot',
-            text: 'I can only help with weather right now. Try asking "What is the weather in <city>?"',
-          },
-        ])
-        return
-      }
-
-      const data = await getWeather(city)
       setMessages((prev) => [
         ...prev,
-        {
-          role: 'bot',
-          text: `The current weather in ${data.city} is ${data.weather}.`,
-        },
+        { role: 'assistant', content: data.reply, videos: data.videos || [] },
       ])
     } catch {
       setMessages((prev) => [
         ...prev,
         {
-          role: 'bot',
-          text: 'Oops, I could not reach the weather service. Is the backend running on port 8000?',
+          role: 'assistant',
+          content: 'Oops, something went wrong. Is the backend running on port 8000?',
+          videos: [],
         },
       ])
     } finally {
@@ -71,17 +63,48 @@ function Chat() {
   return (
     <div className="chat-page">
       <header className="chat-header">
-        <h1>ChaiCode Weather Bot</h1>
-        <p>Ask about the weather in any city</p>
+        <Link to="/" className="back-link">
+          ←
+        </Link>
+        <img src={persona.image} alt={persona.name} className="chat-avatar" />
+        <div>
+          <h1>{persona.name}</h1>
+          <p>{persona.tagline}</p>
+        </div>
       </header>
 
       <main className="chat-messages">
         {messages.map((message, index) => (
-          <div key={index} className={`chat-bubble ${message.role}`}>
-            {message.text}
+          <div key={index} className={`chat-message ${message.role}`}>
+            <div className={`chat-bubble ${message.role}`}>{message.content}</div>
+
+            {message.videos?.length > 0 && (
+              <div className="video-suggestions">
+                <p className="video-suggestions-title">📺 Recommended videos:</p>
+                {message.videos.map((video) => (
+                  <a
+                    key={video.videoId}
+                    href={video.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="video-card"
+                  >
+                    <img src={video.thumbnail} alt="" />
+                    <div>
+                      <span className="video-title">{video.title}</span>
+                      <span className="video-channel">{video.channelTitle}</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         ))}
-        {loading && <div className="chat-bubble bot typing">Thinking...</div>}
+        {loading && (
+          <div className="chat-message assistant">
+            <div className="chat-bubble assistant typing">Thinking...</div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </main>
 
@@ -90,7 +113,7 @@ function Chat() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="What is the weather in Mumbai?"
+          placeholder={`Ask ${persona.name.split(' ')[0]} anything...`}
           autoFocus
         />
         <button type="submit" disabled={loading || !input.trim()}>
