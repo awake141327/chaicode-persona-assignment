@@ -11,10 +11,10 @@ export const PERSONAS = [
   {
     id: 'piyush',
     name: 'Piyush Garg',
-    tagline: 'Full-stack engineering & system design (persona coming soon)',
+    tagline: 'Next.js, TypeScript, Docker & AWS — build and ship like a pro',
     image: '/assets/PiyushGarg.webp',
     greeting:
-      'Hey! Piyush here. My full persona is still being set up, but feel free to ask me anything about coding.',
+      'Hey guys, Piyush here! 🚀 Ask me anything — Next.js, Docker, AWS deployments, system design. Let\'s build something super cool. Samajh aya?',
   },
 ]
 
