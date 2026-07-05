@@ -50,10 +50,10 @@ npm run dev
 
 1. Pick a persona on the home page and start chatting.
 2. The backend prepends the persona's system prompt and sends the conversation to OpenAI.
-3. When the reply covers a tech topic, the persona appends a `[YOUTUBE_SEARCH: keyword]` tag. The backend strips the tag, searches the persona's YouTube channels ([@HiteshCodeLab](https://www.youtube.com/@HiteshCodeLab), [@chaiaurcode](https://www.youtube.com/@chaiaurcode)) via the YouTube Data API, and returns matching videos, which the frontend renders as clickable cards.
+3. When the reply covers a tech topic, the persona appends a `[YOUTUBE_SEARCH: keyword]` tag. The backend strips the tag, searches the persona's own YouTube channels via the YouTube Data API, and returns matching videos, which the frontend renders as clickable cards.
+   - Hitesh: [@HiteshCodeLab](https://www.youtube.com/@HiteshCodeLab), [@chaiaurcode](https://www.youtube.com/@chaiaurcode)
+   - Piyush: [@piyushgargdev](https://www.youtube.com/@piyushgargdev)
 
 ## API
 
 - `POST /api/chat` — body `{ persona: "hitesh" | "piyush", messages: [{ role, content }] }`, returns `{ reply, videos }`.
-
-> The Piyush Garg persona is currently a placeholder — detailed persona context coming soon.
