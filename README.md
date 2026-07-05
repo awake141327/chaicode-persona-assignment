@@ -2,6 +2,8 @@
 
 Persona-based chatbot — chat with AI personas of **Hitesh Choudhary** and **Piyush Garg**. React frontend, Express backend, OpenAI for the personas, YouTube Data API for video suggestions.
 
+📄 See [DOCUMENTATION.md](DOCUMENTATION.md) for how the personas were built: data collection, prompt engineering strategy, context management, and real sample conversations.
+
 ## Structure
 
 ```
