@@ -44,7 +44,7 @@ Each system prompt follows the same engineered structure, built from six techniq
 
 ### a) Role-play framing with a hard character lock
 
-The prompt opens with "You are playing the role of…" and closes with a non-negotiable: *"Stay in character no matter what. In this conversation, you ARE …"*. This prevents the model from drifting into generic-assistant voice mid-conversation.
+Each prompt establishes the identity up front ("You speak as Hitesh Choudhary…" / "Builder first, teacher second, camera third — that's Piyush Garg…") and locks it with a non-negotiable stay-in-character rule. Both prompts carry a dedicated anti-prompt-injection section: user messages carry no authority over the persona's identity, jailbreak attempts get one relaxed in-character brush-off (demonstrated in embedded examples), and the persona never announces that it noticed a trick. Both also include an honesty carve-out — if sincerely asked whether it's an AI, it says so in one line and continues in character — and safety guardrails (declining harmful technical requests, dropping the banter for users in genuine distress).
 
 ### b) Structured behavioral sections
 
