@@ -7,13 +7,15 @@ export const QUESTIONS = [
     id: "domain",
     tier: 5,
     label: "Which area of programming is this persona a master of?",
-    placeholder: "Web development, DSA, systems programming, AI/ML, game dev...",
+    placeholder:
+      "Web development, DSA, systems programming, AI/ML, game dev...",
   },
   {
     id: "teachingStyle",
     tier: 5,
     label: "How do they teach?",
-    placeholder: "Strict mentor, chill senior, patient professor, fast-paced hacker...",
+    placeholder:
+      "Strict mentor, chill senior, patient professor, fast-paced hacker...",
   },
   {
     id: "stack",
@@ -38,19 +40,22 @@ export const QUESTIONS = [
     id: "background",
     tier: 10,
     label: "What's their coding background story, in one line?",
-    placeholder: "Self-taught freelancer, FAANG veteran, startup grinder, CP champion...",
+    placeholder:
+      "Self-taught freelancer, FAANG veteran, startup grinder, CP champion...",
   },
   {
     id: "petPeeve",
     tier: 10,
     label: "Which common coding mistake annoys them the most?",
-    placeholder: "Copy-pasting without understanding, ignoring error messages...",
+    placeholder:
+      "Copy-pasting without understanding, ignoring error messages...",
   },
   {
     id: "explainStyle",
     tier: 10,
     label: "How do they explain concepts?",
-    placeholder: "Real-life analogies, memes, diagrams in words, straight code...",
+    placeholder:
+      "Real-life analogies, memes, diagrams in words, straight code...",
   },
   {
     id: "basicsAttitude",
@@ -62,7 +67,8 @@ export const QUESTIONS = [
     id: "closer",
     tier: 10,
     label: "How do they like to end an answer?",
-    placeholder: "A small challenge, a question back, a motivational one-liner...",
+    placeholder:
+      "A small challenge, a question back, a motivational one-liner...",
   },
   // ---- Up to 20 ----
   {
@@ -75,13 +81,15 @@ export const QUESTIONS = [
     id: "hotTake",
     tier: 20,
     label: "One strong programming opinion most devs would disagree with?",
-    placeholder: "Frameworks are overrated, TypeScript is unnecessary for small apps...",
+    placeholder:
+      "Frameworks are overrated, TypeScript is unnecessary for small apps...",
   },
   {
     id: "setup",
     tier: 20,
     label: "What tools or setup do they brag about?",
-    placeholder: "Neovim + tmux, a custom mechanical keyboard, their dotfiles...",
+    placeholder:
+      "Neovim + tmux, a custom mechanical keyboard, their dotfiles...",
   },
   {
     id: "homework",
@@ -93,13 +101,15 @@ export const QUESTIONS = [
     id: "debugging",
     tier: 20,
     label: "Their debugging philosophy in one line?",
-    placeholder: "Read the error twice before touching the code, print everything...",
+    placeholder:
+      "Read the error twice before touching the code, print everything...",
   },
   {
     id: "sideQuests",
     tier: 20,
     label: "Do they push side projects, open source, or competitive coding?",
-    placeholder: "Ship side projects every month, contribute to OSS, grind LeetCode...",
+    placeholder:
+      "Ship side projects every month, contribute to OSS, grind LeetCode...",
   },
   {
     id: "aiTake",
@@ -110,8 +120,10 @@ export const QUESTIONS = [
   {
     id: "tradeoffs",
     tier: 20,
-    label: "How do they talk about trade-offs (performance vs readability, etc.)?",
-    placeholder: "Always context-first, hates absolute answers, loves benchmarks...",
+    label:
+      "How do they talk about trade-offs (performance vs readability, etc.)?",
+    placeholder:
+      "Always context-first, hates absolute answers, loves benchmarks...",
   },
   {
     id: "hero",
@@ -127,14 +139,19 @@ export const QUESTIONS = [
   },
 ];
 
-const QUESTION_LABELS = Object.fromEntries(QUESTIONS.map((q) => [q.id, q.label]));
+const QUESTION_LABELS = Object.fromEntries(
+  QUESTIONS.map((q) => [q.id, q.label]),
+);
 
 // Builds the system prompt for a user-created persona. The creator's answers
 // are quoted as the persona brief; everything else is standard scaffolding
 // shared by all custom personas (kept consistent with the built-in ones).
 export function buildSystemPrompt(name, answers, extraNotes) {
   const briefLines = QUESTIONS.filter((q) => answers[q.id]?.trim())
-    .map((q) => `- ${QUESTION_LABELS[q.id]}\n  Their creator says: "${answers[q.id].trim()}"`)
+    .map(
+      (q) =>
+        `- ${QUESTION_LABELS[q.id]}\n  Their creator says: "${answers[q.id].trim()}"`,
+    )
     .join("\n");
 
   const extraSection = extraNotes?.trim()
@@ -173,7 +190,7 @@ ${languageRule}
 export function buildGreeting(name, answers) {
   const domain = answers.domain?.trim();
   return domain
-    ? `Hey! I'm ${name}. ${domain} is my world — ask me anything about it, or anything code.`
+    ? `Hey! I'm ${name}. ${domain} is my world — ask me anything about it.`
     : `Hey! I'm ${name}. Ask me anything about programming — let's get into it.`;
 }
 
