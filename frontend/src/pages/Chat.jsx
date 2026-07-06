@@ -1,27 +1,60 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { streamChatMessage } from '../api/client.js'
-import { getPersonaById } from '../personas.js'
+import { getCustomPersonas, streamChatMessage } from '../api/client.js'
+import {
+  DEFAULT_STARTERS,
+  getPersonaById,
+  personaGradient,
+  personaInitials,
+  pickThinkingLine,
+} from '../personas.js'
 import ThemeToggle from '../components/ThemeToggle.jsx'
+import MarkdownMessage from '../components/MarkdownMessage.jsx'
 
 function Chat() {
   const { personaId } = useParams()
-  const persona = getPersonaById(personaId)
+  const staticPersona = getPersonaById(personaId)
 
+  const [customPersona, setCustomPersona] = useState(null)
+  const [resolving, setResolving] = useState(!staticPersona)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  // Random persona-flavoured "thinking" line, picked fresh per message
+  const [thinkingLine, setThinkingLine] = useState('')
   // Announced via the visually-hidden live region for screen readers —
   // coarse states only, never per-token (that would spam the queue)
   const [announcement, setAnnouncement] = useState('')
   const bottomRef = useRef(null)
+
+  const persona = staticPersona || customPersona
+
+  // User-created personas aren't in the static config — look them up
+  useEffect(() => {
+    if (staticPersona) return
+    let cancelled = false
+    setCustomPersona(null)
+    setResolving(true)
+    getCustomPersonas()
+      .then((list) => {
+        if (cancelled) return
+        setCustomPersona(list.find((p) => p.id === personaId) || null)
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setResolving(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [personaId])
 
   // Reset the conversation when switching personas
   useEffect(() => {
     if (persona) {
       setMessages([{ role: 'assistant', content: persona.greeting, videos: [] }])
     }
-  }, [personaId])
+  }, [persona?.id])
 
   useEffect(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -29,6 +62,13 @@ function Chat() {
   }, [messages])
 
   if (!persona) {
+    if (resolving) {
+      return (
+        <div className="flex h-dvh items-center justify-center text-slate-600 dark:text-slate-400">
+          Loading persona...
+        </div>
+      )
+    }
     return <Navigate to="/" replace />
   }
 
@@ -41,9 +81,13 @@ function Chat() {
     })
   }
 
-  async function handleSend(e) {
+  function handleSend(e) {
     e.preventDefault()
-    const text = input.trim()
+    sendMessage(input)
+  }
+
+  async function sendMessage(rawText) {
+    const text = rawText.trim()
     if (!text || loading) return
 
     const nextMessages = [...messages, { role: 'user', content: text }]
@@ -51,6 +95,7 @@ function Chat() {
     setMessages([...nextMessages, { role: 'assistant', content: '', videos: [] }])
     setInput('')
     setLoading(true)
+    setThinkingLine(pickThinkingLine(persona))
     setAnnouncement(`${persona.name} is replying…`)
 
     let streamedReply = ''
@@ -100,11 +145,19 @@ function Chat() {
           ←
         </Link>
         <div className="rounded-full bg-linear-to-br from-accent via-fuchsia-500 to-cyan-400 p-0.5">
-          <img
-            src={persona.image}
-            alt={persona.name}
-            className="size-10 rounded-full object-cover"
-          />
+          {persona.image ? (
+            <img
+              src={persona.image}
+              alt={persona.name}
+              className="size-10 rounded-full object-cover"
+            />
+          ) : (
+            <div
+              className={`flex size-10 items-center justify-center rounded-full bg-linear-to-br text-sm font-bold text-white ${personaGradient(persona.id)}`}
+            >
+              {personaInitials(persona.name)}
+            </div>
+          )}
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-[16px] font-semibold">{persona.name}</h1>
@@ -126,20 +179,21 @@ function Chat() {
             }`}
           >
             <div
-              className={`max-w-[85%] rounded-3xl px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap wrap-anywhere sm:max-w-[75%] ${
+              className={`max-w-[85%] rounded-3xl px-4 py-2.5 text-[15px] leading-relaxed wrap-anywhere sm:max-w-[75%] ${
                 message.role === 'user'
-                  ? 'rounded-br-md bg-linear-to-br from-purple-600 to-fuchsia-700 text-white shadow-lg shadow-accent/25'
+                  ? 'rounded-br-md whitespace-pre-wrap bg-linear-to-br from-purple-600 to-fuchsia-700 text-white shadow-lg shadow-accent/25'
                   : 'rounded-bl-md border border-white/50 bg-white/60 shadow-md shadow-purple-500/5 backdrop-blur-xl dark:border-white/10 dark:bg-white/8 dark:shadow-black/20'
               }`}
             >
-              {message.content ||
-                (loading && index === messages.length - 1 ? (
-                  <span className="text-slate-500 italic dark:text-slate-400">
-                    Thinking...
-                  </span>
-                ) : (
-                  message.content
-                ))}
+              {message.role === 'user' ? (
+                message.content
+              ) : message.content ? (
+                <MarkdownMessage content={message.content} />
+              ) : loading && index === messages.length - 1 ? (
+                <span className="text-slate-500 italic dark:text-slate-400">
+                  {thinkingLine}
+                </span>
+              ) : null}
             </div>
 
             {message.videos?.length > 0 && (
@@ -174,6 +228,27 @@ function Chat() {
             )}
           </div>
         ))}
+
+        {messages.length === 1 && !loading && (
+          <div className="mt-2 flex flex-col gap-2">
+            <p className="px-1 text-xs text-slate-500 dark:text-slate-400">
+              Try asking:
+            </p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {(persona.starters || DEFAULT_STARTERS).map((starter) => (
+                <button
+                  key={starter}
+                  type="button"
+                  onClick={() => sendMessage(starter)}
+                  className="cursor-pointer rounded-2xl border border-white/50 bg-white/50 px-4 py-3 text-left text-sm text-slate-700 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-md hover:shadow-accent/10 motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-white/10 dark:bg-white/8 dark:text-slate-200"
+                >
+                  {starter}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </main>
 

@@ -1,6 +1,15 @@
 # Persona Chatbot — Technical Documentation
 
-This document explains how the two personas (**Hitesh Choudhary** and **Piyush Garg**) were built: where the persona data came from, how the prompts are engineered, how conversation context is managed, and real sample conversations captured from the running app.
+This document explains how the two built-in personas (**Hitesh Choudhary** and **Piyush Garg**) were built — where the persona data came from, how the prompts are engineered, how conversation context is managed, and real sample conversations — followed by the two features layered on top: a **custom persona builder** that lets users design their own coding mentor from a form, and the **liquid-glass frontend** (streaming, markdown, theming) they're all served through.
+
+Contents:
+1. How the persona data was collected and prepared
+2. Prompt engineering strategy
+3. Context management approach
+4. Sample conversations
+5. Custom persona builder
+6. Frontend experience (streaming, markdown, theming)
+7. Deployment
 
 ---
 
@@ -105,9 +114,15 @@ Switching personas **resets the conversation**. Histories are never mixed across
 
 Replies stream over Server-Sent Events. Because the `[YOUTUBE_SEARCH: …]` tag arrives in fragments at the end of the stream, the controller uses a **holdback buffer**: any text that could be the start of the tag is withheld until it's confirmed either way, so the raw protocol never flashes on the user's screen. After the stream ends, the tag keyword is resolved into video results and delivered in a final `{ done, videos }` event.
 
-### Keeping context small
+### Keeping context — and cost — bounded
 
-Two deliberate choices bound token usage: the central brevity rule keeps each assistant turn short, and per-persona sessions (reset on switch, no persistence across reloads) keep histories naturally shallow for the assignment's scope. A future improvement would be windowing or summarizing history beyond N turns.
+Three deliberate choices bound token usage:
+
+1. The central **brevity rule** keeps each assistant turn short by instruction.
+2. **Per-persona sessions** (reset on switch, no persistence across reloads) keep histories naturally shallow.
+3. A hard **`max_completion_tokens` ceiling** on every model call (in `openai.service.js`) is the real safety net — it caps the cost of any single reply and stops runaway generation regardless of what the prompt or user asks for. Because `gpt-5-mini` spends internal *reasoning* tokens against this same budget, the ceiling is set with headroom so an everyday reply never hits it; only a request for an exhaustive, essay-length answer would be capped, which is the intended behavior. Note the API requires `max_completion_tokens` here — the older `max_tokens` parameter is rejected by gpt-5 models.
+
+A future improvement would be windowing or summarizing history beyond N turns.
 
 ---
 
@@ -232,14 +247,84 @@ Again the mirroring rule kicks in (Hinglish in → Hinglish out), while the pers
 
 ---
 
+## 5. Custom Persona Builder
+
+Beyond the two hand-crafted personas, users can create their own coding mentor through a form. The design goal was to reuse the exact same chat pipeline — a custom persona is indistinguishable from a built-in one once created.
+
+### The form
+
+At [`frontend/src/pages/CreatePersona.jsx`](frontend/src/pages/CreatePersona.jsx), the user:
+
+1. Names the persona.
+2. Chooses a **depth**: **5 questions** (quick sketch), **10** (well-rounded), or **20** (full character). The tiers are progressive — the first 5 are the core, 10 adds five more, 20 adds ten more.
+3. Answers the shown questions (only the first 5 are required; the rest are optional).
+4. Optionally adds free-form notes, **hard-limited to 100 words** with a live counter.
+
+The questions are all programming-themed — area of expertise, teaching style, favourite stack, catchphrases, coding philosophy, pet peeves, how they handle basic questions, their debugging philosophy, take on AI tools, and so on. They live in a **single catalog** in [`backend/services/promptBuilder.service.js`](backend/services/promptBuilder.service.js) and are served to the frontend via `GET /api/personas/questions`, so there's one source of truth.
+
+### From answers to a system prompt
+
+`buildSystemPrompt(name, answers, extraNotes)` turns the form into a prompt in the same engineered style as the built-ins: it quotes each answer as a labelled "brief," then wraps it in the shared scaffolding every persona gets — a character lock, a language rule, the programming-only lane, safety guardrails, and the anti-injection section. Custom personas have **no YouTube channels**, so they carry no `[YOUTUBE_SEARCH]` tag instruction and the video pipeline simply returns an empty list for them.
+
+Two safeguards worth noting:
+- **Only visible answers are submitted.** If a user fills 20 questions then downsizes to 5, the hidden answers stay in local state (so they reappear if they switch back) but are *not* sent — the persona is shaped only by what the user can currently see.
+- **Server-side validation** re-checks everything the form checks (name length, valid question ids, per-answer length, the 100-word notes cap), since the API can be called directly.
+
+### Storage and lifecycle
+
+Created personas are persisted to a JSON file via [`backend/services/personaStore.service.js`](backend/services/personaStore.service.js), loaded into memory at startup. The persona registry's `getPersona()` checks built-ins first, then the store — which is why a custom persona flows through the identical `/api/chat` path. Custom personas appear as cards on the home page (with an initials avatar on a deterministic gradient, since they have no image) and can be deleted. On the deployed backend (Railway), the filesystem is ephemeral, so custom personas reset on redeploy — an acceptable trade for a demo, called out so it isn't a surprise.
+
+### New endpoints
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/personas/questions` | The tiered question catalog + valid counts |
+| `GET` | `/api/personas` | List user-created personas (public fields only) |
+| `POST` | `/api/personas` | Create a persona from form answers |
+| `DELETE` | `/api/personas/:id` | Remove a user-created persona |
+
+---
+
+## 6. Frontend Experience
+
+The frontend is a React + Vite SPA styled with **Tailwind CSS v4** in a "liquid glass" (glassmorphism) theme — translucent, blurred panels floating over an animated gradient backdrop.
+
+- **Theming**: a Light / Dark / **System** switch (`ThemeContext` + `ThemeToggle`), with System following the OS live via `matchMedia`. A tiny pre-paint script in `index.html` applies the saved theme before first render to avoid a flash of the wrong theme.
+- **Streaming replies**: assistant messages stream token-by-token over Server-Sent Events (see §3), with a persona-specific "thinking" line while the first token is pending (Hitesh sips chai; Piyush is "architecting the perfect answer").
+- **Markdown rendering**: replies are rendered through `react-markdown`, so fenced code blocks get a proper dark panel with a language label and horizontal scroll, and inline code, lists, bold and links all format correctly. It renders no raw HTML, so it's XSS-safe. User messages stay plain text.
+- **Starter suggestions**: when a chat is fresh, four persona-specific prompt chips are offered (custom personas fall back to a generic set); clicking one sends it immediately.
+- **Accessibility & responsiveness**: a hidden `aria-live` region announces streamed replies to screen readers, animations respect `prefers-reduced-motion`, long code and URLs wrap instead of breaking the layout, and everything reflows from mobile to desktop.
+
+These were hardened via multi-agent review passes that surfaced and fixed concrete issues (contrast on glass panels, reduced-motion support, emoji names breaking initials avatars, hidden-answer leakage in the builder), rather than shipped on first draft.
+
+---
+
+## 7. Deployment
+
+The app is split across two hosts:
+
+- **Frontend → Vercel** (static Vite build). A `vercel.json` rewrites all routes to `index.html` so client-side routing survives refreshes. The backend URL comes from a build-time `VITE_API_URL` env var (falls back to `localhost:8000` for local dev).
+- **Backend → Railway** (long-running Express server, so SSE streaming works as-is). Secrets (`OPENAI_API_KEY`, `YOUTUBE_API_KEY`) and the frontend origin (`FRONTEND_URL`, for the CORS allowlist) are set as environment variables.
+
+CORS is locked to an allowlist (localhost dev ports plus `FRONTEND_URL`) rather than left open.
+
+---
+
 ## Appendix: Where everything lives
 
 | Concern | File |
 | --- | --- |
-| Persona prompts + channels | `backend/personas/*.persona.js` |
-| Persona registry | `backend/personas/index.js` |
-| Shared brevity rule + streaming model call | `backend/services/openai.service.js` |
+| Built-in persona prompts + channels | `backend/personas/*.persona.js` |
+| Persona registry (built-ins + custom) | `backend/personas/index.js` |
+| Brevity rule + token cap + streaming model call | `backend/services/openai.service.js` |
 | Tag parsing, SSE streaming, holdback buffer | `backend/controllers/chat.controller.js` |
 | Channel-restricted video search | `backend/services/youtube.service.js` |
+| Custom persona: question catalog + prompt builder | `backend/services/promptBuilder.service.js` |
+| Custom persona: JSON store | `backend/services/personaStore.service.js` |
+| Custom persona: validation + CRUD | `backend/controllers/persona.controller.js` |
 | Client history management + streaming render | `frontend/src/pages/Chat.jsx` |
-| Frontend persona cards config | `frontend/src/personas.js` |
+| Custom persona builder form | `frontend/src/pages/CreatePersona.jsx` |
+| Home page (persona cards + create) | `frontend/src/pages/Home.jsx` |
+| Markdown renderer for replies | `frontend/src/components/MarkdownMessage.jsx` |
+| Theme (Light/Dark/System) | `frontend/src/theme/ThemeContext.jsx` |
+| Frontend persona config (greetings, starters, thinking lines) | `frontend/src/personas.js` |

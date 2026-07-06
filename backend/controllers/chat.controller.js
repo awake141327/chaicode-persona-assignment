@@ -30,7 +30,8 @@ function sendEvent(res, payload) {
 // Emits: { delta } events while the reply streams,
 // then a final { done: true, videos } event.
 export async function chatWithPersona(req, res) {
-  const { persona: personaId, messages } = req.body;
+  // req.body is undefined when the request isn't sent as application/json
+  const { persona: personaId, messages } = req.body ?? {};
 
   const persona = getPersona(personaId);
   if (!persona) {

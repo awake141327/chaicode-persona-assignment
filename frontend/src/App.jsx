@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Home from './pages/Home.jsx'
 import Chat from './pages/Chat.jsx'
+import CreatePersona from './pages/CreatePersona.jsx'
 import { ThemeProvider } from './theme/ThemeContext.jsx'
 import GlassBackground from './components/GlassBackground.jsx'
 
@@ -12,6 +13,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/chat/:personaId" element={<Chat />} />
+          <Route path="/create" element={<CreatePersona />} />
         </Routes>
       </div>
     </ThemeProvider>

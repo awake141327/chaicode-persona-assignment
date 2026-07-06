@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import chatRoutes from "./routes/chat.routes.js";
+import personaRoutes from "./routes/persona.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -19,6 +20,7 @@ app.use(express.json());
 
 // Mount all route modules here as the app grows
 app.use("/api/chat", chatRoutes);
+app.use("/api/personas", personaRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "ChaiCode persona assignment backend is running ☕" });

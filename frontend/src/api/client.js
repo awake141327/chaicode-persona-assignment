@@ -10,6 +10,27 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
 })
 
+// ---- Custom persona builder ----
+
+export async function getQuestions() {
+  const response = await apiClient.get('/personas/questions')
+  return response.data // { questions: [...], counts: [5, 10, 20] }
+}
+
+export async function getCustomPersonas() {
+  const response = await apiClient.get('/personas')
+  return response.data.personas
+}
+
+export async function createPersona(payload) {
+  const response = await apiClient.post('/personas', payload)
+  return response.data.persona
+}
+
+export async function deletePersona(personaId) {
+  await apiClient.delete(`/personas/${encodeURIComponent(personaId)}`)
+}
+
 // Streams a persona chat reply over Server-Sent Events.
 // Axios can't read browser streams, so this one uses fetch.
 // Calls onDelta(text) for each chunk and onDone(videos) at the end.
