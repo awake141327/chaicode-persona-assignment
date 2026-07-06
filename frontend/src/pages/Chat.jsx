@@ -170,7 +170,7 @@ function Chat() {
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col gap-3 overflow-y-auto px-1 py-5 sm:px-2">
+      <main className="chat-scroll flex flex-1 flex-col gap-3 overflow-y-auto px-1 py-5 sm:px-3">
         {messages.map((message, index) => (
           <div
             key={index}

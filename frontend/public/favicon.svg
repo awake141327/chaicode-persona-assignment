@@ -1,16 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7c3aed"/>
-      <stop offset="1" stop-color="#4f46e5"/>
+      <stop stop-color="#aa3bff"/>
+      <stop offset="0.55" stop-color="#d946ef"/>
+      <stop offset="1" stop-color="#22d3ee"/>
     </linearGradient>
   </defs>
+  <!-- app-gradient tile -->
   <rect width="32" height="32" rx="8" fill="url(#bg)"/>
-  <!-- chat bubble -->
-  <path d="M6 8.5A2.5 2.5 0 0 1 8.5 6h15A2.5 2.5 0 0 1 26 8.5v10a2.5 2.5 0 0 1-2.5 2.5H14l-5 4.5V21H8.5A2.5 2.5 0 0 1 6 18.5v-10Z" fill="#fff"/>
-  <!-- code brackets < > -->
-  <g stroke="#4f46e5" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="M14 10.5 10.5 13.5 14 16.5"/>
-    <path d="M18 10.5 21.5 13.5 18 16.5"/>
-  </g>
+  <!-- speech bubble that reads as a persona's face -->
+  <path d="M6 9.5A3.5 3.5 0 0 1 9.5 6h13A3.5 3.5 0 0 1 26 9.5v8a3.5 3.5 0 0 1-3.5 3.5H13l-4.4 3.9A0.9 0.9 0 0 1 7 24.2V21H9.5A3.5 3.5 0 0 1 6 17.5v-8Z" fill="#fff"/>
+  <!-- eyes -->
+  <circle cx="13" cy="13" r="1.7" fill="#aa3bff"/>
+  <circle cx="19" cy="13" r="1.7" fill="#aa3bff"/>
+  <!-- friendly smile -->
+  <path d="M12.4 16.4c1 1.4 2.2 2.1 3.6 2.1s2.6-.7 3.6-2.1" stroke="#d946ef" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+  <!-- AI sparkle -->
+  <path d="M24 5.5c.3 1.7.8 2.2 2.5 2.5-1.7.3-2.2.8-2.5 2.5-.3-1.7-.8-2.2-2.5-2.5 1.7-.3 2.2-.8 2.5-2.5Z" fill="#fff"/>
 </svg>
